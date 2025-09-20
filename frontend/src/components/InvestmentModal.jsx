@@ -25,7 +25,13 @@ const InvestmentModal = ({ isOpen, onClose, product, mode = 'buy' }) => {
 
   useEffect(() => {
     if (isOpen && product && mode === 'sell') {
-      fetchUserInvestment();
+      // For sell mode, product contains the investment data
+      setUserInvestment({
+        _id: product._id,
+        amount: product.amount,
+        units: product.units,
+        currentValue: product.currentValue
+      });
     }
   }, [isOpen, product, mode]);
 
@@ -42,19 +48,7 @@ const InvestmentModal = ({ isOpen, onClose, product, mode = 'buy' }) => {
     }
   }, [amount, product]);
 
-  const fetchUserInvestment = async () => {
-    try {
-      const response = await investmentsAPI.getUserInvestments({
-        productId: product._id
-      });
-      
-      if (response.data.success && response.data.data.investments.length > 0) {
-        setUserInvestment(response.data.data.investments[0]);
-      }
-    } catch (error) {
-      console.error('Error fetching user investment:', error);
-    }
-  };
+  // Removed fetchUserInvestment as we don't need it anymore
 
   const handleInvestment = async () => {
     try {
@@ -94,20 +88,20 @@ const InvestmentModal = ({ isOpen, onClose, product, mode = 'buy' }) => {
         };
 
         const response = await investmentsAPI.createInvestment(investmentData);
+
+        // Handle successful response
+        setSuccess(`Successfully invested ${formatCurrency(investmentAmount)} in ${product.name}!`);
         
-        if (response.data.success) {
-          setSuccess(`Successfully invested ${formatCurrency(investmentAmount)} in ${product.name}!`);
-          
-          // Update user balance
-          const newBalance = user.balance - investmentAmount;
-          updateUser({ ...user, balance: newBalance });
-          
-          setTimeout(() => {
-            onClose();
-            setAmount('');
-            setUnits('');
-          }, 2000);
-        }
+        // Update user balance
+        const newBalance = user.balance - investmentAmount;
+        updateUser({ ...user, balance: newBalance });
+        
+        setTimeout(() => {
+          onClose();
+          setAmount('');
+          setUnits('');
+          window.location.reload();
+        }, 2000);
       } else if (mode === 'sell') {
         if (!userInvestment) {
           setError('No investment found to redeem');
@@ -126,24 +120,36 @@ const InvestmentModal = ({ isOpen, onClose, product, mode = 'buy' }) => {
           amount: investmentAmount
         });
 
-        if (response.data.success) {
-          setSuccess(`Successfully sold ${unitsToSell} units for ${formatCurrency(investmentAmount)}!`);
-          
-          // Update user balance
-          const newBalance = user.balance + investmentAmount;
-          updateUser({ ...user, balance: newBalance });
-          
-          setTimeout(() => {
-            onClose();
-            setAmount('');
-            setUnits('');
-          }, 2000);
-        }
+        setSuccess(`Successfully sold ${unitsToSell} units for ${formatCurrency(investmentAmount)}!`);
+        
+        // Update user balance with the new amount from the response
+        const newBalance = response.data.data.newBalance;
+        updateUser({ ...user, balance: newBalance });
+        
+        setTimeout(() => {
+          onClose();
+          setAmount('');
+          setUnits('');
+          window.location.reload(); // Reload to update the investments list
+        }, 2000);
       }
 
     } catch (error) {
       console.error('Investment error:', error);
-      setError(error.response?.data?.message || 'Transaction failed. Please try again.');
+      // If we get here and the status is 201 (Created), the investment was successful despite the error
+      if (error.response?.status === 201 || error.response?.data?.success) {
+        setSuccess(`Successfully invested ${formatCurrency(investmentAmount)} in ${product.name}!`);
+        const newBalance = user.balance - investmentAmount;
+        updateUser({ ...user, balance: newBalance });
+        setTimeout(() => {
+          onClose();
+          setAmount('');
+          setUnits('');
+          window.location.reload();
+        }, 2000);
+        return;
+      }
+      setError('Transaction failed. Please try again.');
     } finally {
       setLoading(false);
     }

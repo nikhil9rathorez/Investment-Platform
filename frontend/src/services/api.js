@@ -72,7 +72,7 @@ export const investmentsAPI = {
   },
   getInvestment: (id) => apiClient.get(`/investments/${id}`),
   createInvestment: (investmentData) => apiClient.post('/investments', investmentData),
-  redeemInvestment: (id) => apiClient.put(`/investments/${id}/redeem`),
+  redeemInvestment: (id, data) => apiClient.put(`/investments/${id}/redeem`, data),
   getInvestmentAnalytics: () => apiClient.get('/investments/analytics'),
 };
 

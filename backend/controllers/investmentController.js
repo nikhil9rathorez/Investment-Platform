@@ -95,7 +95,8 @@ const createInvestment = async (req, res) => {
       description: `Investment in ${product.name}`,
       paymentMethod: paymentMethod || 'wallet',
       balanceBefore,
-      balanceAfter
+      balanceAfter,
+      transactionId: `TXN${Date.now()}${Math.random().toString(36).substr(2, 6).toUpperCase()}`
     });
 
     // Populate the investment with product details for response
@@ -103,7 +104,7 @@ const createInvestment = async (req, res) => {
       .populate('product', 'name category expectedReturn tenure riskLevel issuer')
       .populate('user', 'name email');
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: 'Investment created successfully',
       data: { investment: populatedInvestment }
@@ -289,14 +290,31 @@ const redeemInvestment = async (req, res) => {
       });
     }
 
-    // Calculate redemption amount (current value)
-    const redemptionAmount = investment.currentValue;
+    const { unitsToRedeem } = req.body;
+    let redemptionAmount;
 
-    // Update investment status
-    await Investment.findByIdAndUpdate(
-      investment._id,
-      { status: 'redeemed' }
-    );
+    // If specific units are provided, calculate partial redemption
+    if (unitsToRedeem && unitsToRedeem < investment.units) {
+      const pricePerUnit = investment.currentValue / investment.units;
+      redemptionAmount = unitsToRedeem * pricePerUnit;
+      
+      // Update investment with remaining units
+      await Investment.findByIdAndUpdate(
+        investment._id,
+        { 
+          units: investment.units - unitsToRedeem,
+          amount: investment.amount * ((investment.units - unitsToRedeem) / investment.units),
+          currentValue: investment.currentValue * ((investment.units - unitsToRedeem) / investment.units)
+        }
+      );
+    } else {
+      // Full redemption
+      redemptionAmount = investment.currentValue;
+      await Investment.findByIdAndUpdate(
+        investment._id,
+        { status: 'redeemed' }
+      );
+    }
 
     // Update user balance
     const user = await User.findById(req.user.id);
@@ -311,20 +329,22 @@ const redeemInvestment = async (req, res) => {
     // Update product units (return units to available pool)
     await Product.findByIdAndUpdate(
       investment.product._id,
-      { $inc: { unitsSold: -investment.units } }
+      { $inc: { unitsSold: -(unitsToRedeem || investment.units) } }
     );
 
-    // Create redemption transaction
+    // Create redemption transaction with a unique transaction ID
+    const transactionId = `TXN${Date.now()}${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
     await Transaction.create({
       user: req.user.id,
       investment: investment._id,
       type: 'redemption',
       amount: redemptionAmount,
       status: 'completed',
-      description: `Redemption of investment in ${investment.product.name}`,
+      description: `Redemption of ${unitsToRedeem || investment.units} units in ${investment.product.name}`,
       paymentMethod: 'wallet',
       balanceBefore,
-      balanceAfter
+      balanceAfter,
+      transactionId
     });
 
     res.status(200).json({
@@ -332,7 +352,8 @@ const redeemInvestment = async (req, res) => {
       message: 'Investment redeemed successfully',
       data: {
         redemptionAmount,
-        newBalance: balanceAfter
+        newBalance: balanceAfter,
+        remainingUnits: unitsToRedeem ? investment.units - unitsToRedeem : 0
       }
     });
 

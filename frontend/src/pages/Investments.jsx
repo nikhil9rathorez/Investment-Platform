@@ -52,8 +52,14 @@ const Investments = () => {
       ]);
 
       if (investmentsRes.data.success) {
-        setInvestments(investmentsRes.data.data.investments || []);
+        // Set status to 'confirmed' if it's not set
+        const processedInvestments = (investmentsRes.data.data.investments || []).map(inv => ({
+          ...inv,
+          status: inv.status || 'confirmed'
+        }));
+        setInvestments(processedInvestments);
         setPortfolioStats(investmentsRes.data.data.portfolioStats);
+        console.log('Processed investments:', processedInvestments); // Debug log
       }
 
       if (analyticsRes.data.success) {
@@ -67,7 +73,20 @@ const Investments = () => {
   };
 
   const handleInvestmentAction = (investment, mode) => {
-    setSelectedProduct(investment.product);
+    console.log('Investment status:', investment.status); // Debug log
+    if (mode === 'buy') {
+      setSelectedProduct(investment.product);
+    } else {
+      // When selling, pass the full investment data
+      setSelectedProduct({
+        ...investment.product,
+        _id: investment._id,
+        currentValue: investment.currentValue || investment.amount,
+        units: investment.units,
+        amount: investment.amount,
+        status: investment.status
+      });
+    }
     setModalMode(mode);
     setIsModalOpen(true);
   };
@@ -97,12 +116,17 @@ const Investments = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
+      case 'confirmed':
       case 'active':
         return 'bg-success-100 text-success-700';
       case 'matured':
         return 'bg-blue-100 text-blue-700';
       case 'redeemed':
         return 'bg-gray-100 text-gray-700';
+      case 'cancelled':
+        return 'bg-danger-100 text-danger-700';
+      case 'pending':
+        return 'bg-warning-100 text-warning-700';
       default:
         return 'bg-warning-100 text-warning-700';
     }
@@ -148,6 +172,24 @@ const Investments = () => {
       bgColor: 'bg-gray-50'
     }
   ];
+
+  const handleSell = (stock) => {
+    fetch(`/api/sellStock`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      // Send the stock id and sale amount (using currentValue as sale amount here)
+      body: JSON.stringify({ stockId: stock.id, saleAmount: stock.currentValue })
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        // Update wallet and transaction history in your state management if needed
+        alert('Stock sold successfully!');
+      })
+      .catch((err) => {
+        console.error('Error selling stock:', err);
+        alert('Error selling stock.');
+      });
+  };
 
   if (loading) {
     return (
@@ -301,7 +343,7 @@ const Investments = () => {
         </div>
 
         {investments.length > 0 ? (
-          <div className={`grid ${selectedView === 'grid' ? 'grid-cols-1 lg:grid-cols-2 xl:grid-cols-3' : 'grid-cols-1'} gap-6`}>
+          <div className={`grid ${selectedView === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' : 'grid-cols-1'} gap-4`}>
             {investments.map((investment) => (
               <div key={investment._id} className="border border-gray-200 rounded-xl p-6 hover:border-primary-300 hover:shadow-md transition-all">
                 <div className="flex items-start justify-between mb-4">
@@ -325,51 +367,29 @@ const Investments = () => {
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 mb-1">Current Value</p>
-                    <p className="font-semibold text-gray-900">{formatCurrency(investment.currentValue)}</p>
+                    <p className="font-semibold text-gray-900">{formatCurrency(investment.currentValue || investment.amount)}</p>
                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-4">
                   <div>
                     <p className="text-xs text-gray-500 mb-1">Units Owned</p>
                     <p className="font-medium text-gray-900">{investment.units}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Returns</p>
-                    <div className="flex items-center space-x-1">
-                      {getPerformanceIcon(investment.returns)}
-                      <p className={`font-semibold ${getPerformanceColor(investment.returns)}`}>
-                        {formatCurrency(investment.returns)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-                  <div>
-                    <p className="text-gray-500">Invested On</p>
-                    <p className="font-medium text-gray-900">{formatDate(investment.createdAt)}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">Expected Return</p>
+                    <p className="text-xs text-gray-500 mb-1">Expected Return</p>
                     <p className="font-medium text-success-600">{investment.product?.expectedReturn}%</p>
                   </div>
                 </div>
 
-                {investment.status === 'active' && (
-                  <div className="flex space-x-3">
-                    <button
-                      onClick={() => handleInvestmentAction(investment, 'buy')}
-                      className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Buy More</span>
-                    </button>
-                    <button
-                      onClick={() => handleInvestmentAction(investment, 'sell')}
-                      className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 border border-orange-300 text-orange-700 rounded-lg hover:bg-orange-50 transition-colors"
-                    >
-                      <Minus className="w-4 h-4" />
-                      <span>Sell</span>
-                    </button>
-                  </div>
+                {investment.status !== 'redeemed' && investment.status !== 'cancelled' && (
+                  <button
+                    onClick={() => handleInvestmentAction(investment, 'sell')}
+                    className="w-full mt-4 flex items-center justify-center space-x-2 px-4 py-2.5 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                  >
+                    <Minus className="w-4 h-4" />
+                    <span>Sell Stock</span>
+                  </button>
                 )}
               </div>
             ))}
