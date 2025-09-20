@@ -149,6 +149,7 @@ Register a new user account.
   "phoneNumber": "9876543210"
 }
 ```
+![alt text](frontend/src/assets/images/1.png)
 
 #### POST `/api/auth/login`
 User login authentication.
@@ -159,6 +160,8 @@ User login authentication.
   "password": "SecurePass123"
 }
 ```
+
+![alt text](frontend/src/assets/images/2.png)
 
 ### Product Endpoints
 
@@ -171,8 +174,12 @@ Get all investment products with filtering options.
 - `page`: Page number for pagination
 - `limit`: Number of items per page
 
+![alt text](frontend/src/assets/images/3.png)
+
 #### GET `/api/products/:id`
 Get detailed information about a specific product.
+
+![alt text](frontend/src/assets/images/4.png)
 
 ### Investment Endpoints
 
@@ -191,23 +198,18 @@ Create a new investment.
 #### GET `/api/investments`
 Get user's investment portfolio.
 
-#### PUT `/api/investments/:id/redeem`
-Redeem/sell an investment.
+![alt text](frontend/src/assets/images/5.png)
 
-### Transaction Endpoints
 
-#### POST `/api/transactions/add-money`
-Add money to wallet.
-
-```json
-{
-  "amount": 50000,
-  "paymentMethod": "upi"
-}
-```
 
 #### GET `/api/transactions`
 Get transaction history with filtering options.
+
+![alt text](frontend/src/assets/images/9.png)
+
+### Health Check
+
+![alt text](frontend/src/assets/images/8.png)
 
 ## 🏗️ Architecture
 
