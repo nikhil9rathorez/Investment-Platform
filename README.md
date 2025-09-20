@@ -1,6 +1,6 @@
 # 🚀 Mini Investment Platform
 
-A comprehensive full-stack investment platform built for **Grip Invest Winter Internship 2025**. This project demonstrates modern web development practices with a focus on user experience, security, and scalability.
+This project demonstrates modern web development practices with a focus on user experience, security, and scalability.
 
 ![Platform Preview](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
 ![Tech Stack](https://img.shields.io/badge/Stack-MERN-blue)
@@ -44,12 +44,6 @@ GripInvest is a modern investment platform that allows users to:
 - Real-time portfolio tracking
 - Investment analytics and insights
 - Risk assessment tools
-
-### 💳 Wallet System
-- Secure wallet management
-- Add/withdraw money functionality
-- Transaction history tracking
-- Balance management
 
 ### 📊 Dashboard & Analytics
 - Comprehensive portfolio dashboard
@@ -413,9 +407,9 @@ This project is created for **Grip Invest Winter Internship 2025** evaluation pu
 ## 📞 Contact
 
 For questions about this project:
-- **Email**: [Your Email]
-- **LinkedIn**: [Your LinkedIn]
-- **GitHub**: [Your GitHub]
+- **Email**: nsrathore93212e@gmail.com
+- **LinkedIn**: https://www.linkedin.com/in/nikhil-573139252/
+- **GitHub**: nikhil9rathorez
 
 ---
 
